@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Tap Up – HTML5 Canvas (PWA)</title>
+  <title>Tap Up – HTML5 Canvas (PWA v3)</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
   <meta name="theme-color" content="#0b0f14">
@@ -69,9 +69,11 @@
   </div>
 
   <script>
+  // Service worker (PWA)
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => navigator.serviceWorker.register('service-worker.js'));
   }
+  // Install prompt
   let deferredPrompt; const installBtn = document.getElementById('installBtn');
   window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; installBtn.hidden = false; });
   installBtn?.addEventListener('click', async () => { if (!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; installBtn.hidden = true; });
@@ -82,6 +84,7 @@
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
 
+    // Fixed logical resolution
     const LOGICAL_W = 375; const ASPECT = 1.6; const LOGICAL_H = Math.round(LOGICAL_W * ASPECT);
     let dpr = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
     function resize() {
@@ -94,6 +97,7 @@
     }
     window.addEventListener('resize', resize); resize();
 
+    // Tuned physics
     const gravity = 0.32;
     const groundY = LOGICAL_H - 40;
     const ball = { x: LOGICAL_W/2, y: LOGICAL_H/2, r: 26, vx: 0, vy: 0, spin: 0, angle: 0 };
@@ -102,6 +106,7 @@
     scoreEl.textContent = score; bestEl.textContent = best;
     let running = false; let gameOver = false;
 
+    // Overlay controls
     const overlay = document.getElementById('overlay');
     const startCard = document.getElementById('startCard');
     const howCard = document.getElementById('howCard');
@@ -118,28 +123,42 @@
     document.getElementById('menuBtn').onclick = () => showOverlay(startCard);
     document.getElementById('resetBestBtn').onclick = () => { localStorage.removeItem('tapup_best'); best = 0; bestEl.textContent = '0'; };
 
+    // Start at menu
     showOverlay(startCard);
 
     function resetBall() { ball.x = LOGICAL_W/2; ball.y = LOGICAL_H * 0.45; ball.vx = 0; ball.vy = -7; ball.spin = 0; ball.angle = 0; }
     function startGame() { score = 0; scoreEl.textContent = '0'; gameOver = false; running = true; hideOverlay(); resetBall(); }
     function endGame() { running = false; gameOver = true; finalScoreEl.textContent = String(score); if (score > best) { best = score; localStorage.setItem('tapup_best', String(best)); bestEl.textContent = String(best); } showOverlay(gameOverCard); }
 
+    // Input
     const getCanvasPos = (evt) => { const rect = canvas.getBoundingClientRect(); const cx = (evt.clientX - rect.left) * (LOGICAL_W / rect.width); const cy = (evt.clientY - rect.top) * (LOGICAL_H / rect.height); return { x: cx, y: cy }; };
     const kick = (px, py) => {
       if (!running) return;
       const dx = px - ball.x; const dy = py - ball.y; const dist = Math.hypot(dx, dy);
       const hitRadius = ball.r * 1.25;
-      if (dist <= hitRadius) {\n        const centerFactor = Math.max(0.7, 1 - (dist / hitRadius));\n        const baseUp = 11.5;\n        ball.vy = - (baseUp * centerFactor);\n        ball.vx += Math.max(-5.5, Math.min(5.5, dx * 0.065));\n        ball.spin += Math.max(-0.22, Math.min(0.22, dx * 0.0022));\n        score++; scoreEl.textContent = String(score); popFX(ball.x, ball.y);\n      }\n    };
+      if (dist <= hitRadius) {
+        const centerFactor = Math.max(0.7, 1 - (dist / hitRadius));
+        const baseUp = 11.5;
+        ball.vy = - (baseUp * centerFactor);
+        ball.vx += Math.max(-5.5, Math.min(5.5, dx * 0.065));
+        ball.spin += Math.max(-0.22, Math.min(0.22, dx * 0.0022));
+        score++; scoreEl.textContent = String(score); popFX(ball.x, ball.y);
+      }
+    };
 
     canvas.addEventListener('pointerdown', (e) => { e.preventDefault(); const p = getCanvasPos(e); kick(p.x, p.y); }, { passive: false });
     document.addEventListener('touchmove', (e) => { if (e.target === canvas) e.preventDefault(); }, { passive: false });
 
+    // FX
     const particles = [];
     function popFX(x, y) { for (let i=0;i<8;i++) particles.push({ x, y, vx: (Math.random()-0.5)*2, vy: -Math.random()*2-0.5, life: 22 }); }
     function drawParticles() {
       for (let i = particles.length-1; i >= 0; i--) {
-        const p = particles[i]; p.x += p.vx; p.y += p.vy; p.vy += 0.08; p.life -= 1; ctx.globalAlpha = Math.max(0, p.life/22);
-        ctx.fillStyle = '#b7e1ff'; ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1; if (p.life <= 0) particles.splice(i,1);
+        const p = particles[i]; p.x += p.vx; p.y += p.vy; p.vy += 0.08; p.life -= 1;
+        ctx.globalAlpha = Math.max(0, p.life/22);
+        ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI*2); ctx.fill();
+        ctx.globalAlpha = 1;
+        if (p.life <= 0) particles.splice(i,1);
       }
     }
 
@@ -159,7 +178,12 @@
       if (ball.x + ball.r > LOGICAL_W - 12) { ball.x = LOGICAL_W - 12 - ball.r; ball.vx *= -0.5; ball.spin *= 0.7; }
       if (ball.y + ball.r >= groundY) { ball.y = groundY - ball.r; endGame(); }
     }
-    function drawBackground() { const g = ctx.createRadialGradient(LOGICAL_W/2, LOGICAL_H*0.4, 60, LOGICAL_W/2, LOGICAL_H/2, LOGICAL_H*0.9); g.addColorStop(0, 'rgba(108, 192, 255, 0.08)'); g.addColorStop(1, 'rgba(108, 192, 255, 0.00)'); ctx.fillStyle = g; ctx.fillRect(0,0,LOGICAL_W,LOGICAL_H); }
+    function drawBackground() {
+      const g = ctx.createRadialGradient(LOGICAL_W/2, LOGICAL_H*0.4, 60, LOGICAL_W/2, LOGICAL_H/2, LOGICAL_H*0.9);
+      g.addColorStop(0, 'rgba(108, 192, 255, 0.08)');
+      g.addColorStop(1, 'rgba(108, 192, 255, 0.00)');
+      ctx.fillStyle = g; ctx.fillRect(0,0,LOGICAL_W,LOGICAL_H);
+    }
     function render() { ctx.clearRect(0,0,LOGICAL_W,LOGICAL_H); drawBackground(); drawGround(); drawParticles(); drawSoccerBall(); }
 
     function loop() { if (running) physics(); render(); requestAnimationFrame(loop); }
