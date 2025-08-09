@@ -18,10 +18,10 @@
     }
     #wrap { position: fixed; inset: 0; display: grid; place-items: center; }
     canvas { display: block; width: min(100vw, 600px); height: calc(min(100vw, 600px) * 1.6); max-height: 100vh; background: linear-gradient(#0b1320, #0b0f14); border-radius: 18px; box-shadow: 0 10px 40px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.05); touch-action: none; }
- 
+
     .hud { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 14px; align-items: center; font-weight: 600; }
     .pill { background: rgba(255,255,255,.08); padding: 8px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,.08); }
- 
+
     .overlay { position: fixed; inset: 0; display: grid; place-items: center; pointer-events: none; }
     .card { pointer-events: auto; width: min(90vw, 420px); background: rgba(15,20,30,.8); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,.08); border-radius: 16px; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,.5); text-align: center; }
     .title { font-size: 28px; font-weight: 800; letter-spacing: .3px; margin: 4px 0 8px; }
@@ -31,7 +31,7 @@
     .primary { background: var(--accent); color: #001018; }
     .ghost { background: transparent; color: var(--fg); border: 1px solid rgba(255,255,255,.15); }
     .danger { background: var(--danger); color: white; }
- 
+
     @media (max-height: 700px) {
       canvas { height: 100vh; width: calc(100vh / 1.6); }
     }
@@ -80,19 +80,19 @@
       </div>
     </div>
   </div>
- 
+
   <script>
   (() => {
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
- 
+
     // Fixed logical resolution (scaled by DPR) for crisp art
     const LOGICAL_W = 375; // iPhone-ish width
     const ASPECT = 1.6; // 375x600
     const LOGICAL_H = Math.round(LOGICAL_W * ASPECT);
- 
+
     let dpr = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
- 
+
     function resize() {
       const maxW = Math.min(window.innerWidth, 600);
       const maxH = Math.min(window.innerHeight, Math.round(600*ASPECT));
@@ -105,11 +105,11 @@
     }
     window.addEventListener('resize', resize);
     resize();
- 
+
     // Game state
     const gravity = 0.35; // downward accel
     const groundY = LOGICAL_H - 40; // ground line
- 
+
     const ball = {
       x: LOGICAL_W/2,
       y: LOGICAL_H/2,
@@ -119,32 +119,32 @@
       spin: 0,
       angle: 0,
     };
- 
+
     let score = 0;
     let best = parseInt(localStorage.getItem('tapup_best') || '0', 10);
     const scoreEl = document.getElementById('score');
     const bestEl = document.getElementById('best');
     scoreEl.textContent = score;
     bestEl.textContent = best;
- 
+
     let running = false;
     let gameOver = false;
- 
+
     // UI overlay elements
     const overlay = document.getElementById('overlay');
     const startCard = document.getElementById('startCard');
     const howCard = document.getElementById('howCard');
     const gameOverCard = document.getElementById('gameOverCard');
     const finalScoreEl = document.getElementById('finalScore');
- 
+
     const showOverlay = (card) => {
       overlay.hidden = false;
       startCard.hidden = true; howCard.hidden = true; gameOverCard.hidden = true;
       card.hidden = false;
     };
- 
+
     const hideOverlay = () => { overlay.hidden = true; };
- 
+
     // Buttons
     document.getElementById('playBtn').onclick = () => { startGame(); };
     document.getElementById('howBtn').onclick = () => { showOverlay(howCard); };
@@ -156,31 +156,31 @@
       localStorage.removeItem('tapup_best');
       best = 0; bestEl.textContent = '0';
     };
- 
+
     // Start at menu
     showOverlay(startCard);
- 
+
     function resetBall() {
       ball.x = LOGICAL_W/2;
       ball.y = LOGICAL_H * 0.45;
       ball.vx = 0; ball.vy = -6;
       ball.spin = 0; ball.angle = 0;
     }
- 
+
     function startGame() {
       score = 0; scoreEl.textContent = '0';
       gameOver = false; running = true;
       hideOverlay();
       resetBall();
     }
- 
+
     function endGame() {
       running = false; gameOver = true;
       finalScoreEl.textContent = String(score);
       if (score > best) { best = score; localStorage.setItem('tapup_best', String(best)); bestEl.textContent = String(best); }
       showOverlay(gameOverCard);
     }
- 
+
     // Input handling (mouse/touch/pointer)
     const getCanvasPos = (evt) => {
       const rect = canvas.getBoundingClientRect();
@@ -188,7 +188,7 @@
       const cy = (evt.clientY - rect.top) * (LOGICAL_H / rect.height);
       return { x: cx, y: cy };
     };
- 
+
     const kick = (px, py) => {
       if (!running) return;
       const dx = px - ball.x;
@@ -211,16 +211,16 @@
         // Miss: do nothing—if you miss too often, gravity wins :)
       }
     };
- 
+
     canvas.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       const p = getCanvasPos(e);
       kick(p.x, p.y);
     }, { passive: false });
- 
+
     // Prevent touch scrolling when interacting
     document.addEventListener('touchmove', (e) => { if (e.target === canvas) e.preventDefault(); }, { passive: false });
- 
+
     // Simple FX particles
     const particles = [];
     function popFX(x, y) {
@@ -228,7 +228,7 @@
         particles.push({ x, y, vx: (Math.random()-0.5)*2, vy: -Math.random()*2-0.5, life: 22 });
       }
     }
- 
+
     function drawParticles() {
       for (let i = particles.length-1; i >= 0; i--) {
         const p = particles[i];
@@ -240,7 +240,7 @@
         if (p.life <= 0) particles.splice(i,1);
       }
     }
- 
+
     function drawGround() {
       ctx.save();
       ctx.strokeStyle = 'rgba(255,255,255,0.12)';
@@ -251,19 +251,19 @@
       ctx.stroke();
       ctx.restore();
     }
- 
+
     function drawSoccerBall() {
       const { x, y, r } = ball;
       ctx.save();
       ctx.translate(x, y);
       ctx.rotate(ball.angle);
- 
+
       // Base ball
       ctx.fillStyle = '#f5f7fb';
       ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
       ctx.strokeStyle = 'rgba(0,0,0,0.15)'; ctx.lineWidth = 2; ctx.stroke();
- 
-      // Simple stylized pentagon and panels
+
+      // Simple stylized pentagon and panels (not geometrically perfect—good enough!)
       ctx.fillStyle = '#111826';
       const pentR = r * 0.45;
       ctx.beginPath();
@@ -274,7 +274,7 @@
         if (i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
       }
       ctx.closePath(); ctx.fill();
- 
+
       ctx.strokeStyle = '#111826'; ctx.lineWidth = 2;
       for (let i=0;i<5;i++){
         const ang = -Math.PI/2 + i * (Math.PI*2/5);
@@ -282,28 +282,28 @@
         const py = Math.sin(ang) * pentR;
         ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(Math.cos(ang)*r*0.95, Math.sin(ang)*r*0.95); ctx.stroke();
       }
- 
+
       ctx.restore();
     }
- 
+
     function physics() {
       // Integrate
       ball.x += ball.vx;
       ball.y += ball.vy;
       ball.vy += gravity;
       ball.angle += ball.spin;
- 
+
       // Horizontal bounds with gentle bounce
       if (ball.x - ball.r < 12) { ball.x = 12 + ball.r; ball.vx *= -0.5; ball.spin *= 0.7; }
       if (ball.x + ball.r > LOGICAL_W - 12) { ball.x = LOGICAL_W - 12 - ball.r; ball.vx *= -0.5; ball.spin *= 0.7; }
- 
+
       // Ground check
       if (ball.y + ball.r >= groundY) {
         ball.y = groundY - ball.r;
         endGame();
       }
     }
- 
+
     function drawBackground() {
       // Simple vignette
       const g = ctx.createRadialGradient(LOGICAL_W/2, LOGICAL_H*0.4, 60, LOGICAL_W/2, LOGICAL_H/2, LOGICAL_H*0.9);
@@ -311,7 +311,7 @@
       g.addColorStop(1, 'rgba(108, 192, 255, 0.00)');
       ctx.fillStyle = g; ctx.fillRect(0,0,LOGICAL_W,LOGICAL_H);
     }
- 
+
     function render() {
       // Clear
       ctx.clearRect(0,0,LOGICAL_W,LOGICAL_H);
@@ -320,7 +320,7 @@
       drawParticles();
       drawSoccerBall();
     }
- 
+
     function loop() {
       if (running) physics();
       render();
